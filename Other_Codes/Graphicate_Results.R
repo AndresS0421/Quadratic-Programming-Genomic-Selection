@@ -4,12 +4,11 @@ library(dplyr)
 library(ggplot2)
 
 source("utils.r")
-# TODO: Change names
 names <- c("Ratio_Mean_Var", "Ratio_Mean", "Ratio_Variance", "Ratio_Relatedness")
 
 # Dataset
-datasets <- c("Groundnut", "Indica", "Japonica", "Rice_IRRI_Philippines_Spindel_2015", "Eucalyptus_Australian_Calister_2022")
-dataset_selected_index <- 5
+datasets <- c("Groundnut", "Indica", "Japonica", "Rice_IRRI_Philippines_Spindel_2015", "Eucalyptus_Australian_Calister_2022", "Across_Dataset")
+dataset_selected_index <- 6
 dataset_name <- datasets[dataset_selected_index]
 # Results folder
 results_folder_name <- "Optimal_Line_Selection"
@@ -28,6 +27,10 @@ data_sets <- unique(data_sets)
 # create the directory where the plots are goind to be stored in
 plots_dir<- paste("Results_Graphics",sep="_")
 dir.create(plots_dir)
+
+# Get repetitions number for each top percentage
+repetitions_0.1 <- sum(results_dataset$Top_percentage_to_select == 0.1)
+repetitions_0.2 <- sum(results_dataset$Top_percentage_to_select == 0.2)
 
 # Results Format To Graph --------------------------------------------------------
 results_dataset_long <- data.frame(
@@ -56,6 +59,15 @@ summary_results_dataset_long <- results_dataset_long %>%
     ),
     .groups = "drop"
   )
+
+# Divide sd between the repetitions number
+summary_results_dataset_long <- summary_results_dataset_long %>% 
+  mutate(across(ends_with("_sd"), 
+                ~ case_when(
+                  Top_percentage_to_select == 0.1 ~ .x / repetitions_0.1,
+                  Top_percentage_to_select == 0.2 ~ .x / repetitions_0.2,
+                  TRUE ~ .x
+                )))
 
 # Renombrar columnas *_avg -> original, mantener *_sd
 names(summary_results_dataset_long) <- gsub("_avg$", "", names(summary_results_dataset_long))

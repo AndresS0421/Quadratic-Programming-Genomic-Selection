@@ -1,0 +1,5 @@
+"","Dataset","Top_percentage_to_select","Method","Ratio_Mean_avg","Ratio_Mean_sd","Ratio_Variance_avg","Ratio_Variance_sd","Ratio_Mean_Var_avg","Ratio_Mean_Var_sd","Ratio_Relatedness_avg","Ratio_Relatedness_sd"
+"1","Eucalyptus_Australian_Calister_2022","0.1","BV_QP",0.711398583857143,0.183954702244256,0.478077132857143,0.146449897094868,392.061754237,365.450304424219,0.109642916,0.0524522252238527
+"2","Eucalyptus_Australian_Calister_2022","0.1","BV_Trad",1,0,1,0,250.123438950143,232.194179453096,1,0
+"3","Eucalyptus_Australian_Calister_2022","0.2","BV_QP",0.702225416428571,0.164880639166477,0.548281524,0.192453151231811,281.156506828143,259.284508986278,0.324333305,0.300205466001539
+"4","Eucalyptus_Australian_Calister_2022","0.2","BV_Trad",1,0,1,0,204.270632109,191.009944382201,1,0

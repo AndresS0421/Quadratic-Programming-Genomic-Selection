@@ -140,7 +140,7 @@ for (k in 1:length(All_envs)) {
   current_env <- All_envs[k]
   print("----------------------------")
   
-  if (is.na(current_env)) {
+  if (!is.na(current_env)) {
     print(paste0("ENV = ", current_env))
     Pheno <- All_Pheno[All_Pheno$Env == current_env,]
     Pheno <- droplevels(Pheno)
@@ -311,10 +311,3 @@ Summary_all_traits
 # Write each dataset results file ------------------------------------------------
 write.csv(Summary_all_traits, paste(results_dir, paste0("summary_ALL_", dataset_name, ".csv"), sep = "/"))
 write.csv(Selection_all_traits, paste(results_dir, paste0("selection_ALL_", dataset_name, ".csv"), sep = "/"))
-
-# Save on general files ----------------------------------------------------------
-#general_summary_results <- rbind(general_summary_results, Summary_all_traits)
-#general_selection_results <- rbind(general_selection_results, Selection_all_traits)
-# Write the general results files ------------------------------------------------
-#write.csv(general_summary_results, general_summary_file_path)
-#write.csv(general_selection_results, general_selection_file_path)
