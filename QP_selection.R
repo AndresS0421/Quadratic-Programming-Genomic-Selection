@@ -14,8 +14,8 @@ library(CVXR)
 
 # VARIABLES LIST -----------------------------------------------------------------
 # Dataset
-datasets <- c("Indica_AL", "Japonica_AL", "Groundnut_AL", "Maize_AL", "Rice_Kim_2020", "Pinus_Florida_USA_Resende_2012", "Rice_IRRI_Philippines_Spindel_2015", "Eucalyptus_Australian_Calister_2022")
-dataset_selected_index <- 8
+datasets <- c("Indica_AL", "Japonica_AL", "Groundnut_AL", "Rice_IRRI_Philippines_Spindel_2015", "Eucalyptus_Australian_Calister_2022")
+dataset_selected_index <- 1 # CHANGE THIS INDEX IN ORDER TO CHANGE THE TRAINING DATASET
 dataset_name <- datasets[dataset_selected_index]
 # Top percentage
 percentages <- c(0.1, 0.2)

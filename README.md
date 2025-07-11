@@ -105,10 +105,21 @@ library(caret)
 ### Installation
 
 ```r
-# Install required packages
-install.packages(c("BGLR", "SKM", "dplyr", "tidyr", "reshape2", 
+# Install devtools if not already installed
+if (!require("devtools")) {
+  install.packages("devtools")
+}
+
+# Install GitHub packages
+devtools::install_github("gdlc/BGLR-R")
+devtools::install_github("rstudio/keras")
+devtools::install_github("rstudio/tensorflow")
+devtools::install_github("brandon-mosqueda/SKM")
+
+# Install CRAN packages
+install.packages(c("dplyr", "tidyr", "reshape2", 
                    "quadprog", "CVXR", "ROI", "ROI.plugin.glpk", 
-                   "pracma", "ggplot2", "caret"))
+                   "pracma", "ggplot2", "caret", "plyr"))
 ```
 
 ## Usage
@@ -132,14 +143,6 @@ install.packages(c("BGLR", "SKM", "dplyr", "tidyr", "reshape2",
    ```r
    source("Other_Codes/Graphicate_Results.R")
    ```
-
-### Key Functions
-
-- `best_lines_match()`: Calculates percentage matching between selected and top-performing lines
-- `cosine_similarity()`: Computes cosine similarity between genomic profiles
-- `euclidean_distance()`: Calculates normalized Euclidean distance
-- `pearson_correlation()`: Measures linear genetic relationships
-- `manhattan_distance()`: Computes Manhattan distance between lines
 
 ## Results and Outputs
 
