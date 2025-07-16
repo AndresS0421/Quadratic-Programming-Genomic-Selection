@@ -21,9 +21,6 @@ dim(results_dataset)
 data_sets <- results_dataset$Data
 data_sets <- unique(data_sets)
 
-
-# delete all the previous plots
-#unlink(plots_dir, recursive = true)
 # create the directory where the plots are goind to be stored in
 plots_dir<- paste("Results_Graphics",sep="_")
 dir.create(plots_dir)
@@ -110,7 +107,7 @@ for (data_set in data_sets) {
           position = position_dodge(0.9),
           colour = "black"
         )+
-      labs(fill = "Proportions")  # Cambia la etiqueta de la leyenda
+      labs(fill = "Methods")  # Cambia la etiqueta de la leyenda
       plot <- white_theme(plot)
       Plot <- plot + theme(
         axis.text = element_text(size = 14),

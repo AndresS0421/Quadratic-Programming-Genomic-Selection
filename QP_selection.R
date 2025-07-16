@@ -15,7 +15,7 @@ library(CVXR)
 # VARIABLES LIST -----------------------------------------------------------------
 # Dataset
 datasets <- c("Indica_AL", "Japonica_AL", "Groundnut_AL", "Rice_IRRI_Philippines_Spindel_2015", "Eucalyptus_Australian_Calister_2022")
-dataset_selected_index <- 1 # CHANGE THIS INDEX IN ORDER TO CHANGE THE TRAINING DATASET
+dataset_selected_index <- 3 # CHANGE THIS INDEX IN ORDER TO CHANGE THE TRAINING DATASET
 dataset_name <- datasets[dataset_selected_index]
 # Top percentage
 percentages <- c(0.1, 0.2)
@@ -27,14 +27,6 @@ results_folder <- "Optimal_Line_Selection"
 # GENERAL FILE PATHS -------------------------------------------------------------
 general_summary_file_path <- file.path(results_folder, "summary_ALL.csv")
 general_selection_file_path <- file.path(results_folder, "selection_ALL.csv")
-# GENERAL RESULTS ----------------------------------------------------------------
-#general_summary_results <- data.frame()
-#general_selection_results <- data.frame()
-# If general file data exists ----------------------------------------------------
-#if (file.exists(general_summary_file_path) && file.exists(general_selection_file_path)) {
-#  general_summary_results <- read.csv(general_summary_file_path) %>% select(-X)
-#  general_selection_results <- read.csv(general_selection_file_path) %>% select(-X)
-#}
 
 # Directory to save the results --------------------------------------------------
 results_dir <- file.path(
@@ -79,19 +71,6 @@ for (i in 1:length(columns_list)) {
   column_name <- columns_list[i]
   Pheno[[column_name]] <- as.numeric(Pheno[[column_name]])
 }
-#X=wheat.X
-#head(X[,1:5])
-#XS=scale(X)
-#head(XS[,1:5])
-#rownames(XS)=rownames(Pheno)
-#Geno=XS%*%t(XS)/ncol(XS)
-#head(Geno[1:5,1:5])
-#Geno=Geno
-#head(Pheno)
-#dim(Pheno)
-#dim(Geno)
-######Selecting the traits to be evaluated###############
-#Traits_to_evaluate
 
 #####R code for computing percentage of mathching#######
 ####Specification of the percentage of top lines to predict######
