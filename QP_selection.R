@@ -15,7 +15,7 @@ library(CVXR)
 # VARIABLES LIST -----------------------------------------------------------------
 # Dataset
 datasets <- c("Indica_AL", "Japonica_AL", "Groundnut_AL", "Rice_IRRI_Philippines_Spindel_2015", "Eucalyptus_Australian_Calister_2022")
-dataset_selected_index <- 3 # CHANGE THIS INDEX IN ORDER TO CHANGE THE TRAINING DATASET
+dataset_selected_index <- 1 # CHANGE THIS INDEX IN ORDER TO CHANGE THE TRAINING DATASET
 dataset_name <- datasets[dataset_selected_index]
 # Top percentage
 percentages <- c(0.1, 0.2)
@@ -32,7 +32,14 @@ general_selection_file_path <- file.path(results_folder, "selection_ALL.csv")
 results_dir <- file.path(
   results_folder,
   dataset_name)
-mkdir(results_dir)
+
+# Check if folder doesn't exist and create one
+if (!dir.exists(results_dir)) {
+  dir.create(results_dir, recursive = TRUE, showWarnings = FALSE)
+  cat("Created directory:", results_dir, "\n")
+} else {
+  cat("Directory already exists:", results_dir, "\n")
+}
 
 # LOADING DATA SET ---------------------------------------------------------------
 dataset_path <- file.path("Datasets", dataset_name)
@@ -44,15 +51,43 @@ load(sprintf("%s.RData", dataset_path), verbose = TRUE)
 ls()
 
 
+# Create trait name mapping dictionary
+trait_mapping <- list(
+  "Indica_AL" = c("GC", "GY", "PH", "PHR"),  # First 4 traits only
+  "Japonica_AL" = c("GC", "GY", "PH", "PHR"),  # First 4 traits only
+  "Groundnut_AL" = c("NPP", "PYPP", "SYPP", "YPH"),  # First 4 traits only
+  "Eucalyptus_Australian_Calister_2022" = c("MOTHER", "FATHER", "PHENOTYPE"),  # 3 traits: parent IDs and phenotype
+  "Rice_IRRI_Philippines_Spindel_2015" = c("PH", "FLW", "Lg", "Exs", "CulmL", "PnN")  # First 6 traits
+)
+
+# Store original trait names for later use
+original_trait_names <- c()
+if (dataset_name %in% names(trait_mapping)) {
+  original_trait_names <- trait_mapping[[dataset_name]]
+} else {
+  if (any(colnames(Pheno) %in% "Env")) {
+    original_trait_names <- colnames(Pheno)[3:ncol(Pheno)]
+  } else {
+    original_trait_names <- colnames(Pheno)[2:ncol(Pheno)]
+  }
+}
+
 columns_list <- c()
 Traits_to_evaluate <- c()
 if (any(colnames(Pheno) %in% "Env")) {
-  columns_list <- c(paste0("T", 1:(length(colnames(Pheno))-2)))
-  colnames(Pheno) <- c("Line", "Env", columns_list)
+  # Use T1, T2, T3... for analysis (limited by trait mapping)
+  num_traits <- length(original_trait_names)
+  columns_list <- c(paste0("T", 1:num_traits))
   
-  Traits_to_evaluate <- setdiff(colnames(Pheno), c("Line", "Env"))
+  # Keep original column structure but rename trait columns
+  trait_cols <- which(colnames(Pheno) %in% original_trait_names)
+  colnames(Pheno)[trait_cols] <- columns_list
+  
+  Traits_to_evaluate <- columns_list
 } else {
-  columns_list <- c(paste0("T", 1:(length(colnames(Pheno))-1)))
+  # Use T1, T2, T3... for analysis (limited by trait mapping)
+  num_traits <- length(original_trait_names)
+  columns_list <- c(paste0("T", 1:num_traits))
   colnames(Pheno) <- c("Line", columns_list)
   
   Traits_to_evaluate <- colnames(Pheno)[-1]
@@ -67,9 +102,36 @@ if (nrow(Pheno) != nrow(Geno)) {
   Pheno <- Pheno[!duplicated(Pheno$Line), ]
 }
 
+# Remove columns with NA names and convert trait columns to numeric
+Pheno <- Pheno[, !is.na(colnames(Pheno)) & colnames(Pheno) != ""]
+
+# Keep only the mapped trait columns plus Line and Env
+if (dataset_name %in% names(trait_mapping)) {
+  # Keep only Line, Env (if it exists), and the mapped trait columns
+  if ("Env" %in% colnames(Pheno)) {
+    columns_to_keep <- c("Line", "Env", paste0("T", 1:length(original_trait_names)))
+  } else {
+    columns_to_keep <- c("Line", paste0("T", 1:length(original_trait_names)))
+  }
+  # Only keep columns that actually exist
+  columns_to_keep <- columns_to_keep[columns_to_keep %in% colnames(Pheno)]
+  Pheno <- Pheno[, columns_to_keep]
+}
+
+# Update columns_list to only include valid columns
+valid_trait_cols <- colnames(Pheno)[!colnames(Pheno) %in% c("Line", "Env")]
+columns_list <- valid_trait_cols
+Traits_to_evaluate <- valid_trait_cols
+
+# Convert trait columns to numeric, handling character data
 for (i in 1:length(columns_list)) {
   column_name <- columns_list[i]
-  Pheno[[column_name]] <- as.numeric(Pheno[[column_name]])
+  if (is.character(Pheno[[column_name]]) || is.factor(Pheno[[column_name]])) {
+    # Convert character/factor to numeric codes
+    Pheno[[column_name]] <- as.numeric(as.factor(Pheno[[column_name]]))
+  } else {
+    Pheno[[column_name]] <- as.numeric(Pheno[[column_name]])
+  }
 }
 
 #####R code for computing percentage of mathching#######
@@ -143,12 +205,14 @@ for (k in 1:length(All_envs)) {
     
     BLUE_y <- BLUE_y[1:total_elements_length, ]
     Observed_trait=Observed_trait[1:total_elements_length]
+    Observed_trait <- scale(Observed_trait)
     
     # Second solution quadratic problem - quadprog -----------------------------------
     D_matrix <- Geno
     D_matrix <- D_matrix[1:total_elements_length, 1:total_elements_length]
     
     d_vec <- BLUE_y[[2]][1:total_elements_length]
+    d_vec <- scale(d_vec)
     
     # Define the variables for optimization
     n <-total_elements_length   # Number of decision variables
@@ -181,11 +245,13 @@ for (k in 1:length(All_envs)) {
                                      Mean_BV_QP=NA,Mean_BV_Trad=NA,Var_Opt_QP=NA, Var_Trad=NA,Expected_Loss_QP=NA,Expected_Loss_Trad=NA,
                                      Ratio_QP=NA, Ratio_Trad=NA,
                                      Av_Rel_QP=NA,
-                                     Ave_Rel_Trad=NA
+                                     Ave_Rel_Trad=NA,
+                                     F_QP=NA,
+                                     F_Trad=NA
           )
           Summary_all_traits=rbind(Summary_all_traits,Summary_Trait_t)
           
-          Selection_Trait_t=data.frame(Data=dataset_name,Env=current_env,Trait=trait,Top_percentage_to_select=Top_percentage_to_select,K_Value=k,data.frame(Line=NA, Observed=NA, Predicted=NA))
+          Selection_Trait_t=data.frame(Data=dataset_name,Env=current_env,Trait=trait,Top_percentage_to_select=Top_percentage_to_select,K_Value=k,Line=NA, Observed=NA, Predicted=NA)
           
           Selection_all_traits=rbind(Selection_all_traits,Selection_Trait_t) 
         } else {
@@ -219,16 +285,24 @@ for (k in 1:length(All_envs)) {
           Mean_GBV_LP=Expected_Gain_Opt/No_Top_20
           Mean_GBV_Trad=Expected_Gain_Rand/No_Top_20
           
-          Var_Opt= k * t(x_sel)%*%Q1%*%x_sel
-          Var_Opt
-          Var_Rand= k * t(x_sel_rand)%*%Q1%*%x_sel_rand
-          Var_Rand
+          Var_Opt_1= k * t(x_sel)%*%Q1%*%x_sel
+          Var_Opt = Var_Opt_1 / (No_Top_20**2)
+          
+          
+          Var_Rand_1= k * t(x_sel_rand)%*%Q1%*%x_sel_rand
+          Var_Rand = Var_Rand_1 / (No_Top_20**2)
           Expected_Loss_QP=Expected_Gain_Opt-Var_Opt
           Gain_Opt=Expected_Gain_Opt/Var_Opt
           Gain_Opt
           Expected_Loss_Trad=Expected_Gain_Rand-Var_Rand
           Gain_Rand=Expected_Gain_Rand/Var_Rand
           Gain_Rand
+          
+          F_QP = k * sum(diag(Q1)*x_sel)
+          F_QP = (F_QP / No_Top_20) - 1
+          
+          F_Trad = k * sum(diag(Q1)*x_sel_rand)
+          F_Trad = (F_Trad / No_Top_20) - 1
           
           # Indices of individuals in the sample (e.g., individuals 1 to 5)
           sample_indices_LP=which(round(Pred_sol_QP)==1)
@@ -269,7 +343,9 @@ for (k in 1:length(All_envs)) {
                                      Mean_BV_QP=Mean_GBV_LP,Mean_BV_Trad=Mean_GBV_Trad,Var_Opt_QP=Var_Opt, Var_Trad=Var_Rand,Expected_Loss_QP=Expected_Loss_QP,Expected_Loss_Trad=Expected_Loss_Trad,
                                      Ratio_QP=Gain_Opt, Ratio_Trad=Gain_Rand,
                                      Av_Rel_QP=average_relatedness_LP,
-                                     Ave_Rel_Trad=average_relatedness_Trad
+                                     Ave_Rel_Trad=average_relatedness_Trad,
+                                     F_QP = F_QP,
+                                     F_Trad = F_Trad
           )            
           
           Selection_Trait_t=data.frame(Data=dataset_name,Env=current_env,Trait=trait,Top_percentage_to_select=Top_percentage_to_select,K_Value=k,Data)
@@ -286,6 +362,28 @@ Summary_all_traits
 Selection_all_traits
 
 Summary_all_traits
+
+# Rename trait columns back to original names for output
+if (exists("original_trait_names") && length(original_trait_names) > 0) {
+  # Create mapping from T1, T2, T3... to original names
+  trait_mapping_vector <- setNames(original_trait_names, paste0("T", 1:length(original_trait_names)))
+  
+  # Rename trait columns in Summary_all_traits
+  if (nrow(Summary_all_traits) > 0) {
+    Summary_all_traits$Trait <- as.character(Summary_all_traits$Trait)
+    for (i in 1:length(trait_mapping_vector)) {
+      Summary_all_traits$Trait[Summary_all_traits$Trait == names(trait_mapping_vector)[i]] <- trait_mapping_vector[i]
+    }
+  }
+  
+  # Rename trait columns in Selection_all_traits
+  if (nrow(Selection_all_traits) > 0) {
+    Selection_all_traits$Trait <- as.character(Selection_all_traits$Trait)
+    for (i in 1:length(trait_mapping_vector)) {
+      Selection_all_traits$Trait[Selection_all_traits$Trait == names(trait_mapping_vector)[i]] <- trait_mapping_vector[i]
+    }
+  }
+}
 
 # Write each dataset results file ------------------------------------------------
 write.csv(Summary_all_traits, paste(results_dir, paste0("summary_ALL_", dataset_name, ".csv"), sep = "/"))
